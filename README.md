@@ -25,7 +25,7 @@
 وابستگی به لایه های درونی خود دارد و هیچ وابستگی به لایه بیرونی خود
 ندارد. (شکل 1)
 
-!](images/Onion1.webp)
+![](images/Onion1.webp)
 
 شکل 1
 
@@ -99,7 +99,7 @@
 >
 > **لایه های پروژه در NestJs**
 >
-> !](images/nest.png){width="3.4583333333333335in"
+> ![](images/nest.png){width="3.4583333333333335in"
 > height="3.4583333333333335in"}
 
 **Domain entities**
@@ -111,19 +111,15 @@
 در پروژه تعریف شده ما این لایه شامل مقالات وبلاگ می باشد بنابر این در
 ابتده
 
+```ts
 export interface IArticle {
-
-  id: number;
-
-  body: string;
-
-  createdAt: Date;
-
-  updatedAt: Date;
-
-  title: string;
-
+  id: number;
+  body: string;
+  createdAt: Date;
+  updatedAt: Date;
+  title: string;
 }
+```
 
 **Repository**
 
@@ -135,25 +131,19 @@ export interface IArticle {
 در ادامه کد مربوط به Interface این لایه آمده
 است:
 
-export interface class ArticleRepository {
-
-  abstract get(id: number): Promise\<IArticle\>;
-
-  abstract delete(id: number): Promise\<boolean\>;
-
-  abstract save(input: Partial\<IArticle\>): Promise\<IArticle\>;
-
-  abstract update(input: Partial\<IArticle\>): Promise\<boolean\>;
-
-  abstract getList(
-
-    skip: number,
-
-    limit: number,
-
-  ): Promise\<{ result: IArticle\\]; total: number }\>;
-
+```ts
+export abstract class ArticleRepository {
+  abstract get(id: number): Promise<IArticle>;
+  abstract delete(id: number): Promise<boolean>;
+  abstract save(input: Partial<IArticle>): Promise<IArticle>;
+  abstract update(input: Partial<IArticle>): Promise<boolean>;
+  abstract getList(
+    skip: number,
+    limit: number
+  ): Promise<{ result: IArticle[]; total: number }>;
 }
+
+```
 
 در لایه Reposytory معمولا توابع یکسانی برای
 تمامی Entity ها پیاده سازی میشود و پیشنهاد میشود از
@@ -161,52 +151,40 @@ export interface class ArticleRepository {
 کمتر استفاده شود. پس کد بالا را به صورت بهینه و یک کلاس
 Abstract به حالت زیر تغییر میدهیم:
 
-export abstract class BaseRepository\<T\> {
-
-  abstract get(id: number): Promise\<T\>;
-
-  abstract delete(id: number): Promise\<boolean\>;
-
-  abstract save(input: Partial\<T\>): Promise\<T\>;
-
-  abstract update(input: Partial\<T\>): Promise\<boolean\>;
-
-  abstract getList(
-
-    skip: number,
-
-    limit: number,
-
-  ): Promise\<{ result: T\\]; total: number }\>;
-
+```ts
+export abstract class BaseRepository<T> {
+  abstract get(id: number): Promise<T>;
+  abstract delete(id: number): Promise<boolean>;
+  abstract save(input: Partial<T>): Promise<T>;
+  abstract update(input: Partial<T>): Promise<boolean>;
+  abstract getList(
+    skip: number,
+    limit: number,
+  ): Promise<{ result: T[]; total: number }>;
 }
 
+```
 **Service**
 
 این لایه وظیفه دارد تا اطلاعات مورد نیاز را از لایه
 Repository تهیه کرده و به لایه بالاتر (Controller) ارجاع
 دهد.
 
+```ts
+import { IArticle } from '../entities/article/article.interface';
+
 export interface IArticleService {
-
-  create(title: string, body: string): Promise\<IArticle\>;
-
-  update(id: number, title?: string, body?: string): Promise\<boolean\>;
-
-  get(id: number): Promise\<IArticle\>;
-
-  getList(
-
-    skip: number,
-
-    limit: number,
-
-  ): Promise\<{ result: IArticle\\]; total: number }\>;
-
-  delete(id: number): Promise\<boolean\>;
-
+  create(title: string, body: string): Promise<IArticle>;
+  update(id: number, title?: string, body?: string): Promise<boolean>;
+  get(id: number): Promise<IArticle>;
+  getList(
+    skip: number,
+    limit: number,
+  ): Promise<{ result: IArticle[]; total: number }>;
+  delete(id: number): Promise<boolean>;
 }
 
+```
 **Controller**
 
 برای ساده تر کردن برنامه با توجه به این که NestJs برای
@@ -218,69 +196,46 @@ export interface IArticleService {
 ایجاد Interface برای آن نیست و میتوانیم آن را مستقیما کد
 نویسی کنیم.
 
-\@Controller(\'article\')
-
+```ts
+@Controller('article')
 export class ArticleController {
+  constructor(
+    @Inject('ARTICLE_SERVICE_TOKEN')
+    protected service: IArticleService,
+  ) {}
 
-  constructor(
+  @UseInterceptors(ClassSerializerInterceptor)
+  @Get(':id')
+  getArticle(@Param() id: number): Promise<Article> {
+    return this.service.get(id);
+  }
 
-    \@Inject(\'ARTICLE_SERVICE_TOKEN\')
+  @Put()
+  createArticle(@Body() article: CreateArticleDto) {
+    return this.service.create(article.title, article.body);
+  }
 
-    protected service: IArticleService,
+  @Post()
+  updateArticle(@Body() article: UpdateArticleDto) {
+    return this.service.update(article.id, article.title, article.body);
+  }
 
-  ) {}
+  @Delete(':id')
+  deleteArticle(@Param() id: number) {
+    return this.deleteArticle(id);
+  }
 
-  \@UseInterceptors(ClassSerializerInterceptor)
-
-  \@Get(\':id\')
-
-  getArticle(\@Param() id: number): Promise\<Article\> {
-
-    return this.service.get(id);
-
-  }
-
-  \@Put()
-
-  createArticle(\@Body() article: CreateArticleDto) {
-
-    return this.service.create(article.title, article.body);
-
-  }
-
-  \@Post()
-
-  updateArticle(\@Body() article: UpdateArticleDto) {
-
-    return this.service.update(article.id, article.title, article.body);
-
-  }
-
-  \@Delete(\':id\')
-
-  deleteArticle(\@Param() id: number) {
-
-    return this.deleteArticle(id);
-
-  }
-
-  \@UseInterceptors(ClassSerializerInterceptor)
-
-  \@Get(\'list/:skip/:limit\')
-
-  getListOfArticles(
-
-    \@Param(\'skip\') skip: number,
-
-    \@Param(\'limit\') limit: number,
-
-  ) {
-
-    return this.service.getList(skip ?? 0, limit ?? 1);
-
-  }
-
+  @UseInterceptors(ClassSerializerInterceptor)
+  @Get('list/:skip/:limit')
+  getListOfArticles(
+    @Param('skip') skip: number,
+    @Param('limit') limit: number,
+  ) {
+    return this.service.getList(skip ?? 0, limit ?? 1);
+  }
 }
+
+```
 
 پس از تعریف Interface های لایه های مختلف حالا باید کد آن
 ها را پیاده سازی نماییم.
